@@ -167,9 +167,15 @@ run_trivy() {
     fi
 
     local safe_name=$(echo "$img" | sed 's/[\/:]/_/g')
+    
+    # Esta es la plantilla que usará el parser para no perder info
     local trivy_template="{{range .Results}}{{range .Vulnerabilities}}{{.Severity}},{{.PkgName}},{{.VulnerabilityID}},{{.Title}}\n{{end}}{{end}}"
-    local cmd="trivy image $extra_flags $img > \"\$report_path\" && \
-               trivy image --severity HIGH,CRITICAL --format template --template \"$trivy_template\" $img > \"\$report_path.tmp\""
+
+    # IMPORTANTE: Montamos el directorio de reportes dentro del contenedor para que Trivy pueda escribir ahí
+    # $report_path es la ruta completa en tu Raspberry
+    local cmd="docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /opt/Container-Audit-Botiquin/reports:/opt/Container-Audit-Botiquin/reports aquasec/trivy image $extra_flags $img > \"\$report_path\" && \
+               docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /opt/Container-Audit-Botiquin/reports:/opt/Container-Audit-Botiquin/reports aquasec/trivy image --severity HIGH,CRITICAL --format template --template \"$trivy_template\" $img > \"\$report_path.tmp\""
+
     generate_report "images" "$safe_name" "$cmd"
 }
 
