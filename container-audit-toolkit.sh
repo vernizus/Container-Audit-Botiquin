@@ -37,17 +37,16 @@ parse_hadolint() {
     local report=$1
     echo -e "${BLUE}--- Hadolint Security Analysis ---${NC}"
     while IFS= read -r line; do
-        # Extraer el número de línea, la severidad y el mensaje
-        # El formato original es -:LINE SEVERITY: MESSAGE
-        local line_num=$(echo "$line" | cut -d':' -f2 | tr -d ' ')
-        local content=$(echo "$line" | cut -d':' -f3-)
+        local line_num=$(echo "$line" | cut -d':' -f2)
+        local code=$(echo "$line" | awk '{print $2}')
+        local message=$(echo "$line" | cut -d':' -f4-)
 
         if [[ "$line" == *"error"* ]]; then
-            echo -e "${RED}[✘] Line $line_num - ERROR:${NC}${content#*error:}"
+            echo -e "${RED}[✘] Line $line_num | $code - ERROR:${NC} $message"
         elif [[ "$line" == *"warning"* ]]; then
-            echo -e "${YELLOW}[!] Line $line_num - WARNING:${NC}${content#*warning:}"
+            echo -e "${YELLOW}[!] Line $line_num | $code - WARNING:${NC} $message"
         elif [[ "$line" == *"info"* ]]; then
-            echo -e "${CYAN}[i] Line $line_num - INFO:${NC}${content#*info:}"
+            echo -e "${CYAN}[i] Line $line_num | $code - INFO:${NC} $message"
         else
             echo -e "    $line"
         fi
