@@ -53,6 +53,30 @@ parse_hadolint() {
     done < "$report"
 }
 
+parse_trivy() {
+    local report_path=$1
+    local tmp_report="${report_path}.tmp"
+
+    echo -e "${BLUE}--- Trivy Security Analysis (High-Risk Only) ---${NC}"
+
+    if [ ! -f "$tmp_report" ] || [ ! -s "$tmp_report" ]; then
+        echo -e "${GREEN}[V] No HIGH or CRITICAL vulnerabilities found.${NC}"
+        return
+    fi
+
+    while IFS=',' read -r sev pkg id title; do
+        [ -z "$id" ] && continue
+
+        if [[ "$sev" == "CRITICAL" ]]; then
+            echo -e "${RED}[!] CRITICAL${NC} | ${BOLD}${pkg}${NC} | ${id}"
+        else
+            echo -e "${YELLOW}[!] HIGH${NC}     | ${pkg} | ${id}"
+        fi
+        echo -e "    ${CYAN}Issue:${NC} ${title}"
+    done < "$tmp_report"
+    rm -f "$tmp_report"
+}
+
 generate_report() {
     local category=$1
     local subfolder=$2
@@ -63,7 +87,10 @@ generate_report() {
     mkdir -p "$target_dir"
     echo -ne "${YELLOW}[>] Auditing $category/$subfolder...${NC}"
 
-    eval "$command" > "$report_path" 2> /tmp/audit_err.log &
+    # Ejecutamos el comando (que ahora puede generar archivos .tmp adicionales)
+    # Usamos export para que las variables como report_path lleguen al comando eval
+    export report_path
+    eval "$command" > /dev/null 2> /tmp/audit_err.log &
     local pid=$!
 
     show_spinner "$pid"
@@ -71,15 +98,19 @@ generate_report() {
     wait $pid
     if [ $? -eq 0 ]; then
         echo -e "\r${GREEN}[V] Success:${NC} $report_path"
-        
+
         echo -ne "${CYAN}[?] Open report now? (y/N): ${NC}"
         read -n 1 -r
         echo ""
-        
+
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             echo -e "${BLUE}------------------------------------------${NC}"
+            
+            # Selector de Parser inteligente
             if [[ "$category" == "linter" ]]; then
                 parse_hadolint "$report_path"
+            elif [[ "$category" == "images" ]]; then
+                parse_trivy "$report_path"
             else
                 if command -v less > /dev/null 2>&1; then
                     less -R "$report_path"
@@ -87,7 +118,7 @@ generate_report() {
                     cat "$report_path"
                 fi
             fi
-            
+
             echo -e "${BLUE}------------------------------------------${NC}"
         fi
     else
@@ -117,7 +148,7 @@ run_hadolint() {
 
 run_trivy() {
     local img=$1
-    local extra_flags="--pkg-types os --scanners vuln --timeout 15m" 
+    local extra_flags="--pkg-types os --scanners vuln --timeout 15m"
 
     if [ -z "$img" ]; then
         mapfile -t images < <(docker images --format "{{.Repository}}:{{.Tag}}")
@@ -136,7 +167,10 @@ run_trivy() {
     fi
 
     local safe_name=$(echo "$img" | sed 's/[\/:]/_/g')
-    generate_report "images" "$safe_name" "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v \$HOME/.cache/trivy:/root/.cache/ aquasec/trivy:latest image --severity HIGH,CRITICAL $extra_flags $img"
+    local trivy_template="{{range .Results}}{{range .Vulnerabilities}}{{.Severity}},{{.PkgName}},{{.VulnerabilityID}},{{.Title}}\n{{end}}{{end}}"
+    local cmd="trivy image $extra_flags $img > \"\$report_path\" && \
+               trivy image --severity HIGH,CRITICAL --format template --template \"$trivy_template\" $img > \"\$report_path.tmp\""
+    generate_report "images" "$safe_name" "$cmd"
 }
 
 run_bench() {
