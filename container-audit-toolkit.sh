@@ -132,9 +132,56 @@ case "$1" in
     -h) run_bench ;;
     -f) run_falco ;;
     -o)
-        find "$BASE_REPORT_DIR" -name "*.txt" -mtime +30 -delete
-        docker image prune -f
-        echo -e "${GREEN}[V] Cleanup completed successfully.${NC}"
+        echo -e "${BLUE}--- Professional Cleanup Management ---${NC}"
+        echo -e "1) Delete reports by age (Custom days)"
+        echo -e "2) Standard Cleanup (Dangling images & Build cache)"
+        echo -e "3) ${RED}Deep System Prune (Unused images, containers, networks)${NC}"
+        echo -e "4) ${RED}Hard Reset (Clear ALL Trivy DB & Cache)${NC}"
+        read -p "Select option [1-4]: " clean_opt
+
+        case $clean_opt in
+            1)
+                read -p "Delete reports older than how many days? " days
+                if [[ "$days" =~ ^[0-9]+$ ]]; then
+                    find "$BASE_REPORT_DIR" -name "*.txt" -mtime +"$days" -delete
+                    echo -e "${GREEN}[V] Reports older than $days days deleted.${NC}"
+                else
+                    echo -e "${RED}[!] Error: Please enter a valid number.${NC}"
+                fi
+                ;;
+            2)
+                echo -ne "${YELLOW}[>] Cleaning dangling images and build cache...${NC}"
+                docker image prune -f > /dev/null
+                docker builder prune -f > /dev/null
+                echo -e "\r${GREEN}[V] Standard cleanup completed.${NC}"
+                ;;
+            3)
+                echo -e "${RED}[!] WARNING: This will delete ALL unused images, stopped containers, and networks.${NC}"
+                read -p "THIS ACTION CANNOT BE UNDONE. Are you sure? (y/N): " confirm
+                if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+                    echo -ne "${YELLOW}[>] Performing Deep Prune...${NC}"
+                    docker system prune -a -f > /dev/null
+                    echo -e "\r${GREEN}[V] Deep System Prune completed.${NC}"
+                else
+                    echo -e "${CYAN}[i] Action cancelled by user.${NC}"
+                fi
+                ;;
+            4)
+                echo -e "${RED}[!] WARNING: This will wipe the entire Trivy Database.${NC}"
+                echo -e "You will need an internet connection to download the DB again on the next scan."
+                read -p "Are you sure you want to clear the cache? (y/N): " confirm_trivy
+                if [[ "$confirm_trivy" == "y" || "$confirm_trivy" == "Y" ]]; then
+                    echo -ne "${YELLOW}[>] Wiping Trivy Cache...${NC}"
+                    docker run --rm -v $HOME/.cache/trivy:/root/.cache/ aquasec/trivy:latest image --clear-cache > /dev/null
+                    echo -e "\r${GREEN}[V] Trivy Cache is now empty.${NC}"
+                else
+                    echo -e "${CYAN}[i] Action cancelled.${NC}"
+                fi
+                ;;
+            *)
+                echo -e "${RED}[!] Invalid selection.${NC}"
+                ;;
+        esac
         ;;
     -z)
         echo -e "${RED}>>> STARTING FULL ZERO-TRUST AUDIT <<<${NC}"
