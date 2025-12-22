@@ -1,0 +1,18 @@
+# --- Security Reports ---
+# Do not track audit results to prevent sensitive data leakage
+reports/
+
+# --- Temp Files & Logs ---
+*.log
+/tmp/audit_err.log
+
+# --- OS & IDE Files ---
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
+
+# --- Docker & Environment ---
+# Ensure local environment variables are not committed
+.env
+docker-compose.override.yml
