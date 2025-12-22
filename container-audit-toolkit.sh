@@ -70,7 +70,8 @@ run_hadolint() {
     fi
     if [ -f "$file" ]; then
         local safe_name=$(echo "$file" | sed 's/[\.\/]/_/g')
-        generate_report "linter" "$safe_name" "docker run --rm -i hadolint/hadolint < $file"
+        # Cambiamos la imagen y añadimos '|| true' para que el script no crea que falló el comando
+        generate_report "linter" "$safe_name" "docker run --rm -i ghcr.io/hadolint/hadolint < $file || true"
     fi
 }
 
