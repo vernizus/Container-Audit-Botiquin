@@ -33,6 +33,27 @@ check_env() {
     mkdir -p "$BASE_REPORT_DIR"
 }
 
+parse_hadolint() {
+    local report=$1
+    echo -e "${BLUE}--- Hadolint Security Analysis ---${NC}"
+    while IFS= read -r line; do
+        # Extraer el número de línea, la severidad y el mensaje
+        # El formato original es -:LINE SEVERITY: MESSAGE
+        local line_num=$(echo "$line" | cut -d':' -f2 | tr -d ' ')
+        local content=$(echo "$line" | cut -d':' -f3-)
+
+        if [[ "$line" == *"error"* ]]; then
+            echo -e "${RED}[✘] Line $line_num - ERROR:${NC}${content#*error:}"
+        elif [[ "$line" == *"warning"* ]]; then
+            echo -e "${YELLOW}[!] Line $line_num - WARNING:${NC}${content#*warning:}"
+        elif [[ "$line" == *"info"* ]]; then
+            echo -e "${CYAN}[i] Line $line_num - INFO:${NC}${content#*info:}"
+        else
+            echo -e "    $line"
+        fi
+    done < "$report"
+}
+
 generate_report() {
     local category=$1
     local subfolder=$2
@@ -51,11 +72,23 @@ generate_report() {
     wait $pid
     if [ $? -eq 0 ]; then
         echo -e "\r${GREEN}[V] Success:${NC} $report_path"
+        
         echo -ne "${CYAN}[?] Open report now? (y/N): ${NC}"
         read -n 1 -r
         echo ""
+        
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            cat "$report_path"
+            echo -e "${BLUE}------------------------------------------${NC}"
+            if [[ "$category" == "linter" ]]; then
+                parse_hadolint "$report_path"
+            else
+                if command -v less > /dev/null 2>&1; then
+                    less -R "$report_path"
+                else
+                    cat "$report_path"
+                fi
+            fi
+            
             echo -e "${BLUE}------------------------------------------${NC}"
         fi
     else
