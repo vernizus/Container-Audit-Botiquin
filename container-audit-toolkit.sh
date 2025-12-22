@@ -37,9 +37,9 @@ parse_hadolint() {
     local report=$1
     echo -e "${BLUE}--- Hadolint Security Analysis ---${NC}"
     while IFS= read -r line; do
+        local code=$(echo "$line" | grep -oE '(DL|SC)[0-9]+')
         local line_num=$(echo "$line" | cut -d':' -f2)
-        local code=$(echo "$line" | awk '{print $2}')
-        local message=$(echo "$line" | cut -d':' -f4-)
+        local message=$(echo "$line" | sed 's/.*: //')
 
         if [[ "$line" == *"error"* ]]; then
             echo -e "${RED}[✘] Line $line_num | $code - ERROR:${NC} $message"
