@@ -51,6 +51,13 @@ generate_report() {
     wait $pid
     if [ $? -eq 0 ]; then
         echo -e "\r${GREEN}[V] Success:${NC} $report_path"
+        echo -ne "${CYAN}[?] Open report now? (y/N): ${NC}"
+        read -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            cat "$report_path"
+            echo -e "${BLUE}------------------------------------------${NC}"
+        fi
     else
         echo -e "\r${RED}[X] Failed:${NC} Check /tmp/audit_err.log"
     fi
