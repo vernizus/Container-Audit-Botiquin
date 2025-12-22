@@ -1,6 +1,7 @@
 #!/bin/bash
 
-BASE_REPORT_DIR="./reports"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_REPORT_DIR="$SCRIPT_DIR/reports"
 DATE=$(date +%Y%m%d_%H%M)
 
 GREEN='\033[0;32m'
