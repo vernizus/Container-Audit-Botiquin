@@ -15,7 +15,7 @@ A comprehensive **Cybersecurity** tool designed for analysts and DevSecOps teams
 ## 🛠️ Usage
 1. Clone: `git clone https://github.com/TU_USUARIO/container-audit-botiquin.git`
 2. Permissions: `chmod +x container-audit-toolkit.sh`
-3. Run: `./container-audit-toolkit.sh -z` (for full audit)
+3. Run: `./container-audit-toolkit.sh`
 
 ## 🚧 Roadmap & Future Improvements
 This project is under active development. Future updates will include:
