@@ -13,7 +13,7 @@ Herramienta integral de **Ciberseguridad** diseñada para analistas y equipos de
 ## 🛠️ Instalación y Uso
 1. Clonar: `git clone https://github.com/TU_USUARIO/container-audit-botiquin.git`
 2. Permisos: `chmod +x container-audit-toolkit.sh`
-3. Ejecutar: `./container-audit-toolkit.sh -z`
+3. Ejecutar: `./container-audit-toolkit.sh`
 
 ## 🚧 Roadmap y Mejoras Futuras
 El proyecto está en desarrollo constante. Próximamente:
